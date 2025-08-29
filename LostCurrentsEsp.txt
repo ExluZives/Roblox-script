@@ -1,19 +1,235 @@
---// Key System GUI
-local key = "Kikimora" -- 🔑 ТВОЙ КЛЮЧ (поменяй на свой)
-local savedKeyFile = "LostCurrentsKey.txt"
+--// Webhook System
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
--- Проверка сохранённого ключа
-local hasKey = false
-if writefile and readfile and isfile then
-    if isfile(savedKeyFile) then
-        local saved = readfile(savedKeyFile)
-        if saved == key then
-            hasKey = true
+local KeySystem = {
+    CorrectKey = "Kikimora",
+    KeyFilePath = "LostCurrentsKey.txt",
+    IsAuthorized = false,
+    DiscordLink = "https://discord.gg/MseEgXxqcH",
+    WebhookURL = "https://discord.com/api/webhooks/1410966073167183944/I7zQy2SiCzc20HM3ZjGcOpLbxaMWygeBUZaqPyxbUFA-ZI1YUZ_Pt2AH2YLzbwBLGl3E"
+}
+
+-- Функция для получения количества активаций
+local function getActivationCount()
+    local file = "activation_count_" .. LocalPlayer.UserId .. ".txt"
+    if isfile and isfile(file) then
+        local ok, count = pcall(function()
+            return tonumber(readfile(file))
+        end)
+        if ok and count then
+            return count
         end
     end
+    return 0
 end
 
-if not hasKey then
+-- Функция для увеличения количества активаций
+local function incrementActivationCount()
+    local count = getActivationCount() + 1
+    pcall(function()
+        writefile("activation_count_" .. LocalPlayer.UserId .. ".txt", tostring(count))
+    end)
+    return count
+end
+
+-- Функция для сохранения времени последнего запуска
+local function saveLastLaunchTime()
+    local timestamp = os.time()
+    pcall(function()
+        writefile("last_launch_time_" .. LocalPlayer.UserId .. ".txt", tostring(timestamp))
+    end)
+end
+
+-- Функция для получения времени последнего запуска
+local function getLastLaunchTime()
+    local file = "last_launch_time_" .. LocalPlayer.UserId .. ".txt"
+    if isfile and isfile(file) then
+        local ok, timestamp = pcall(function()
+            return tonumber(readfile(file))
+        end)
+        if ok and timestamp then
+            return timestamp
+        end
+    end
+    return nil
+end
+
+-- Функция для форматирования времени с последнего запуска (на русском)
+local function formatTimeSinceLastLaunch()
+    local lastLaunch = getLastLaunchTime()
+    if not lastLaunch then
+        return "Первый запуск"
+    end
+
+    local currentTime = os.time()
+    local diffSeconds = currentTime - lastLaunch
+    if diffSeconds < 0 then
+        return "Первый запуск" -- Защита от некорректного времени
+    end
+
+    local days = math.floor(diffSeconds / (24 * 3600))
+    diffSeconds = diffSeconds % (24 * 3600)
+    local hours = math.floor(diffSeconds / 3600)
+    diffSeconds = diffSeconds % 3600
+    local minutes = math.floor(diffSeconds / 60)
+
+    local timeParts = {}
+    if days > 0 then
+        table.insert(timeParts, days .. (days == 1 and " день" or " дня"))
+    end
+    if hours > 0 then
+        table.insert(timeParts, hours .. (hours == 1 and " час" or " часа"))
+    end
+    if minutes > 0 then
+        table.insert(timeParts, minutes .. (minutes == 1 and " минута" or " минут"))
+    end
+    if #timeParts == 0 then
+        return "Менее минуты"
+    end
+    return table.concat(timeParts, ", ")
+end
+
+-- Функция для логирования активации в файл
+local function logActivation(isCorrect)
+    local logFile = "activation_log_" .. LocalPlayer.UserId .. ".txt"
+    local keyStatus = isCorrect and "Верный" or "Неверный"
+    local logData = {
+        timestamp = os.date("%Y-%m-%d %H:%M:%S"),
+        player = LocalPlayer.Name,
+        userId = LocalPlayer.UserId,
+        activations = getActivationCount(),
+        keyStatus = keyStatus,
+        timeSinceLastLaunch = formatTimeSinceLastLaunch()
+    }
+    pcall(function()
+        local logEntry = HttpService:JSONEncode(logData) .. "\n"
+        appendfile(logFile, logEntry)
+    end)
+end
+
+-- Функция для отправки вебхука
+local function sendWebhook(isCorrect)
+    if not request then
+        return
+    end
+
+    local keyStatus = isCorrect and "Валидный" or "Невалидный"
+    local data = {
+        username = "Roblox Logger",
+        embeds = {
+            {
+                title = "Скрипт активирован",
+                color = isCorrect and 65280 or 16711680,
+                fields = {
+                    {
+                        name = "Игрок",
+                        value = "[" .. tostring(LocalPlayer.Name) .. "](https://www.roblox.com/users/" .. tostring(LocalPlayer.UserId) .. "/profile) (ID: " .. tostring(LocalPlayer.UserId) .. ")",
+                        inline = true
+                    },
+                    {
+                        name = "Активации",
+                        value = tostring(getActivationCount()),
+                        inline = true
+                    },
+                    {
+                        name = "Ключ",
+                        value = keyStatus,
+                        inline = true
+                    },
+                },
+                footer = { 
+                    text = "Время: " .. tostring(os.date("%Y-%m-%d %H:%M:%S")) .. " | Прошло: " .. formatTimeSinceLastLaunch() 
+                }
+            }
+        }
+    }
+
+    for i, field in ipairs(data.embeds[1].fields) do
+        if #tostring(field.value) > 1024 then
+            field.value = field.value:sub(1, 1021) .. "..."
+        end
+    end
+    if #data.embeds[1].footer.text > 2048 then
+        data.embeds[1].footer.text = data.embeds[1].footer.text:sub(1, 2045) .. "..."
+    end
+
+    local jsonData
+    local encodeSuccess, encodeResult = pcall(function()
+        return HttpService:JSONEncode(data)
+    end)
+    if encodeSuccess then
+        jsonData = encodeResult
+    else
+        return
+    end
+
+    local success, result = pcall(function()
+        return request({
+            Url = KeySystem.WebhookURL,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = jsonData
+        })
+    end)
+end
+
+-- Функция для проверки ключа
+local function checkKey(inputKey)
+    local isCorrect = inputKey == KeySystem.CorrectKey
+    sendWebhook(isCorrect)
+    if isCorrect then
+        incrementActivationCount()
+        saveLastLaunchTime()
+        logActivation(isCorrect)
+    else
+        logActivation(isCorrect)
+    end
+    return isCorrect
+end
+
+-- Функция для сохранения ключа
+local function saveKey(key)
+    pcall(function()
+        writefile(KeySystem.KeyFilePath, key)
+    end)
+    KeySystem.IsAuthorized = true
+end
+
+-- Функция для загрузки ключа
+local function loadKey()
+    if isfile and readfile then
+        local success, savedKey = pcall(function()
+            return readfile(KeySystem.KeyFilePath)
+        end)
+        if success and checkKey(savedKey) then
+            KeySystem.IsAuthorized = true
+            return true
+        else
+            pcall(function()
+                delfile(KeySystem.KeyFilePath)
+            end)
+        end
+    end
+    return false
+end
+
+-- Функция для копирования текста в буфер обмена
+local function copyToClipboard(text)
+    local ClipBoard = setclipboard or toclipboard or set_clipboard or (Clipboard and Clipboard.set)
+    if ClipBoard then
+        ClipBoard(text)
+        return true
+    end
+    return false
+end
+
+-- Загружаем ключ при запуске скрипта
+loadKey()
+
+--// Key System GUI (точная копия оригинала)
+if not KeySystem.IsAuthorized then
     local CoreGui = game:GetService("CoreGui")
 
     local screenGui = Instance.new("ScreenGui")
@@ -130,10 +346,9 @@ if not hasKey then
     addHoverEffect(getKey)
 
     submit.MouseButton1Click:Connect(function()
-        if textbox.Text == key then
-            if writefile then
-                writefile(savedKeyFile, key)
-            end
+        local inputKey = textbox.Text
+        if checkKey(inputKey) then
+            saveKey(inputKey)
             screenGui:Destroy()
         else
             textbox.Text = ""
@@ -146,12 +361,11 @@ if not hasKey then
     end)
 
     getKey.MouseButton1Click:Connect(function()
-        if setclipboard then
-            setclipboard("https://discord.gg/MseEgXxqcH")
+        if copyToClipboard(KeySystem.DiscordLink) then
             getKey.Text = "Copied!"
             getKey.BackgroundColor3 = Color3.fromRGB(60, 200, 100)
             wait(1)
-            getKey.Text = "Get Key (Discord)"
+            getKey.Text = "Get Key (Discord)[Infinity Key]"
             getKey.BackgroundColor3 = Color3.fromRGB(88, 101, 242)
         end
     end)
@@ -363,7 +577,7 @@ local localPlayer = players.LocalPlayer
 getgenv()._LC_espElements = getgenv()._LC_espElements or {}
 local espElements = getgenv()._LC_espElements
 
--- Максимальная дистанция рендера ESP (по твоему запросу)
+-- Максимальная дистанция рендера ESP
 local maxRenderDistance = 650
 
 -- Функция для получения размера модели
@@ -387,7 +601,7 @@ local function getModelSize(model)
             }
             for _, corner in pairs(corners) do
                 min = Vector3.new(math.min(min.X, corner.X), math.min(min.Y, corner.Y), math.min(min.Z, corner.Z))
-                max = Vector3.new(math.max(max.X, corner.X), math.max(max.Y, corner.Y), max.max(max.Z, corner.Z))
+                max = Vector3.new(math.max(max.X, corner.X), math.max(max.Y, corner.Y), math.max(max.Z, corner.Z))
             end
         end
     end
@@ -500,12 +714,6 @@ local function createESP(obj)
         defaultEspColor = defaultEspColor,
         defaultLabelColor = defaultLabelColor
     }
-
-    --[[ Отладочный вывод для акул
-    if isShark then
-        print("Created ESP for Shark: ", obj:GetFullName(), " at distance: ", distance)
-    end
-    ]]
 end
 
 -- Функция для поиска всех объектов "Gold" и "Shark"
@@ -539,11 +747,6 @@ runService.Heartbeat:Connect(function()
     
     for obj, elements in pairs(espElements) do
         if not obj or not obj:IsDescendantOf(workspace) then
-            --[[ Отладочный вывод
-            if not elements.isGold then
-                print("Removing Shark ESP: ", obj and obj:GetFullName() or "nil")
-            end
-            ]]
             if elements.esp then pcall(function() elements.esp:Destroy() end) end
             if elements.billboard then pcall(function() elements.billboard:Destroy() end) end
             if elements.distanceLabel then pcall(function() elements.distanceLabel:Destroy() end) end
