@@ -1,2 +1,2 @@
-# Roblox-script
+# Roblox Lost Currents Script
 Script
