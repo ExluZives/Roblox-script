@@ -4,7 +4,7 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
-local runService = game:GetService("RunService")
+local RunService = game:GetService("RunService")
 
 local KeySystem = {
     CorrectKey = "Kikimora",
@@ -69,7 +69,7 @@ local function formatTimeSinceLastLaunch()
     local currentTime = os.time()
     local diffSeconds = currentTime - lastLaunch
     if diffSeconds < 0 then
-        return "Первый запуск" -- Защита от некорректного времени
+        return "Первый запуск"
     end
 
     local days = math.floor(diffSeconds / (24 * 3600))
@@ -142,8 +142,8 @@ local function sendWebhook(isCorrect)
                         inline = true
                     },
                 },
-                footer = { 
-                    text = "Время: " .. tostring(os.date("%Y-%m-%d %H:%M:%S")) .. " | Последний запуск: " .. formatTimeSinceLastLaunch() 
+                footer = {
+                    text = "Время: " .. tostring(os.date("%Y-%m-%d %H:%M:%S")) .. " | Последний запуск: " .. formatTimeSinceLastLaunch()
                 }
             }
         }
@@ -231,7 +231,7 @@ end
 -- Загружаем ключ при запуске скрипта
 loadKey()
 
---// Key System GUI (точная копия оригинала)
+--// Key System GUI
 if not KeySystem.IsAuthorized then
     local screenGui = Instance.new("ScreenGui")
     screenGui.Parent = CoreGui
@@ -328,7 +328,6 @@ if not KeySystem.IsAuthorized then
     creditLabel.TextXAlignment = Enum.TextXAlignment.Center
     creditLabel.Parent = frame
 
-    -- Hover effects
     local function addHoverEffect(button)
         local originalColor = button.BackgroundColor3
         button.MouseEnter:Connect(function()
@@ -432,7 +431,6 @@ end
 local function createESP(obj)
     if not obj or espElements[obj] then return end
 
-    -- Проверка позиции игрока
     if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         return
     end
@@ -440,7 +438,6 @@ local function createESP(obj)
     local objPos = getObjectPosition(obj)
     local distance = (playerPos - objPos).Magnitude
 
-    -- Не создаём ESP, если объект дальше maxRenderDistance
     if distance > maxRenderDistance then
         return
     end
@@ -557,8 +554,8 @@ openButtonCorner.Parent = openButton
 
 -- Панель
 local panel = Instance.new("Frame")
-panel.Size = UDim2.new(0, 200, 0, 150)
-panel.Position = UDim2.new(0.5, -100, 0.5, -63)
+panel.Size = UDim2.new(0, 200, 0, 180)
+panel.Position = UDim2.new(0.5, -100, 0.5, -90)
 panel.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 panel.BorderSizePixel = 0
 panel.Visible = false
@@ -616,10 +613,10 @@ local buttonLayout = Instance.new("UIListLayout")
 buttonLayout.FillDirection = Enum.FillDirection.Vertical
 buttonLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 buttonLayout.VerticalAlignment = Enum.VerticalAlignment.Top
-buttonLayout.Padding = UDim.new(0, 3) -- Расстояние 3 пикселя между кнопками
+buttonLayout.Padding = UDim.new(0, 3)
 buttonLayout.Parent = buttonContainer
 
--- Кнопка Gold
+-- Кнопка Gold ESP
 local goldBtn = Instance.new("TextButton")
 goldBtn.Size = UDim2.new(0.85, 0, 0, 32)
 goldBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
@@ -635,7 +632,7 @@ local goldBtnCorner = Instance.new("UICorner")
 goldBtnCorner.CornerRadius = UDim.new(0, 6)
 goldBtnCorner.Parent = goldBtn
 
--- Кнопка Shark
+-- Кнопка Shark ESP
 local sharkBtn = Instance.new("TextButton")
 sharkBtn.Size = UDim2.new(0.85, 0, 0, 32)
 sharkBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
@@ -651,7 +648,7 @@ local sharkBtnCorner = Instance.new("UICorner")
 sharkBtnCorner.CornerRadius = UDim.new(0, 6)
 sharkBtnCorner.Parent = sharkBtn
 
--- Кнопка Teleport to Gold (вызывает плавающую кнопку)
+-- Кнопка Teleport to Gold
 local teleportBtn = Instance.new("TextButton")
 teleportBtn.Size = UDim2.new(0.85, 0, 0, 32)
 teleportBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
@@ -667,10 +664,26 @@ local teleportBtnCorner = Instance.new("UICorner")
 teleportBtnCorner.CornerRadius = UDim.new(0, 6)
 teleportBtnCorner.Parent = teleportBtn
 
+-- Кнопка Teleport to Boat
+local boatTeleportBtn = Instance.new("TextButton")
+boatTeleportBtn.Size = UDim2.new(0.85, 0, 0, 32)
+boatTeleportBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
+boatTeleportBtn.Text = "Teleport to Boat"
+boatTeleportBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+boatTeleportBtn.Font = Enum.Font.GothamBold
+boatTeleportBtn.TextSize = 12
+boatTeleportBtn.TextScaled = false
+boatTeleportBtn.BorderSizePixel = 0
+boatTeleportBtn.Parent = buttonContainer
+
+local boatTeleportBtnCorner = Instance.new("UICorner")
+boatTeleportBtnCorner.CornerRadius = UDim.new(0, 6)
+boatTeleportBtnCorner.Parent = boatTeleportBtn
+
 -- Надпись by ExluZive
 local creditLabel2 = Instance.new("TextLabel")
 creditLabel2.Size = UDim2.new(1, 0, 0, 16)
-creditLabel2.Position = UDim2.new(0, 0, 0, 130)
+creditLabel2.Position = UDim2.new(0, 0, 1, -18)
 creditLabel2.BackgroundTransparency = 1
 creditLabel2.Text = "by ExluZive"
 creditLabel2.TextColor3 = Color3.fromRGB(150, 150, 150)
@@ -700,6 +713,7 @@ addHoverEffect(closeBtn)
 addHoverEffect(goldBtn)
 addHoverEffect(sharkBtn)
 addHoverEffect(teleportBtn)
+addHoverEffect(boatTeleportBtn)
 
 -- Логика панели
 openButton.MouseButton1Click:Connect(function()
@@ -746,13 +760,31 @@ local function teleportToNearestGold()
             local cframe = nearestGold:GetBoundingBox()
             teleportPos = cframe.Position
         end
-        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(teleportPos + Vector3.new(0, 5, 0)) -- Телепорт чуть выше объекта
+        LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(teleportPos + Vector3.new(0, 5, 0))
     end
+end
+
+-- Функция телепортации к BoatOrigin
+local function teleportToBoatOrigin()
+    local boatOrigin = game.Workspace:FindFirstChild("Boat") and game.Workspace.Boat:FindFirstChild("BoatOrigin")
+    if not boatOrigin then
+        warn("BoatOrigin не найден в Workspace.Boat!")
+        return
+    elseif not boatOrigin:IsA("Part") then
+        warn("BoatOrigin не является Part! Тип: " .. boatOrigin.ClassName)
+        return
+    end
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        warn("Не удалось телепортировать: персонаж недоступен")
+        return
+    end
+    local position = boatOrigin.Position
+    LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.new(position + Vector3.new(0, 5, 0))
+    print("Телепортирован к BoatOrigin (Путь: " .. boatOrigin:GetFullName() .. ")")
 end
 
 -- Логика кнопки Teleport to Gold (показывает плавающую кнопку)
 local floatingTPButton = nil
-
 teleportBtn.MouseButton1Click:Connect(function()
     if floatingTPButton then
         floatingTPButton:Destroy()
@@ -781,19 +813,53 @@ teleportBtn.MouseButton1Click:Connect(function()
     addHoverEffect(floatingTPButton)
 
     floatingTPButton.MouseButton1Click:Connect(function()
-        teleportToNearestGold()
+        pcall(teleportToNearestGold)
+    end)
+end)
+
+-- Логика кнопки Teleport to Boat (показывает плавающую кнопку)
+local floatingBoatTPButton = nil
+boatTeleportBtn.MouseButton1Click:Connect(function()
+    if floatingBoatTPButton then
+        floatingBoatTPButton:Destroy()
+        floatingBoatTPButton = nil
+        return
+    end
+
+    floatingBoatTPButton = Instance.new("TextButton")
+    floatingBoatTPButton.Size = UDim2.new(0, 100, 0, 30)
+    floatingBoatTPButton.Position = UDim2.new(0.5, -50, 0.85, -15)
+    floatingBoatTPButton.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
+    floatingBoatTPButton.Text = "TP to Boat"
+    floatingBoatTPButton.TextColor3 = Color3.fromRGB(200, 200, 200)
+    floatingBoatTPButton.Font = Enum.Font.GothamBold
+    floatingBoatTPButton.TextSize = 12
+    floatingBoatTPButton.TextScaled = false
+    floatingBoatTPButton.BorderSizePixel = 0
+    floatingBoatTPButton.Active = true
+    floatingBoatTPButton.Draggable = true
+    floatingBoatTPButton.Parent = controlGui
+
+    local floatingBoatCorner = Instance.new("UICorner")
+    floatingBoatCorner.CornerRadius = UDim.new(0, 6)
+    floatingBoatCorner.Parent = floatingBoatTPButton
+
+    addHoverEffect(floatingBoatTPButton)
+
+    floatingBoatTPButton.MouseButton1Click:Connect(function()
+        pcall(teleportToBoatOrigin)
     end)
 end)
 
 -- Удаление всех текущих ESP по типу
 local function removeESPByType(isGoldType)
-    for obj, elements in pairs(getgenv()._LC_espElements or {}) do
+    for obj, elements in pairs(espElements) do
         if elements.isGold == isGoldType then
             if elements.esp then pcall(function() elements.esp:Destroy() end) end
             if elements.billboard then pcall(function() elements.billboard:Destroy() end) end
             if elements.distanceLabel then pcall(function() elements.distanceLabel:Destroy() end) end
             if elements.textLabel then pcall(function() elements.textLabel:Destroy() end) end
-            getgenv()._LC_espElements[obj] = nil
+            espElements[obj] = nil
         end
     end
 end
@@ -830,7 +896,7 @@ workspace.DescendantAdded:Connect(function(obj)
 end)
 
 -- Глобальный Heartbeat для обновления всех ESP
-runService.Heartbeat:Connect(function()
+RunService.Heartbeat:Connect(function()
     if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         return
     end
